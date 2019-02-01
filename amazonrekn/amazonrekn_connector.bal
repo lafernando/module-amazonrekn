@@ -87,7 +87,21 @@ function Client.execReknAction(string accessKey, string secretKey, string region
     if (httpResponse is http:Response) {
         json result = check parseJson(check httpResponse.getPayloadAsString());
         if (httpResponse.statusCode != http:OK_200) {
-            error err = error(<string> result.__type, { message: <string> result.message });
+            string etype;
+            if (result.__type != ()) {
+                etype = <string> result.__type;
+            } else {
+                etype = "Error";
+            }
+            string message;
+            if (result.message != ()) {
+                message = <string> result.message;
+            } else if (result.Message != ()) {
+                message = <string> result.Message;
+            } else {
+                message = check string.convert(result);
+            }
+            error err = error(etype, { message: message });
             return err;
         }
         return result;
