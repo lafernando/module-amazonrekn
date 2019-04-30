@@ -65,7 +65,7 @@ function Client.execReknAction(string accessKey, string secretKey, string region
                                string payload) returns json|error {
     string host = REKN_SERVICE_NAME + "." + region + "." + amazoncommons:AMAZON_HOST;
     string amzTarget = "RekognitionService." + action;
-    time:Time time = time:toTimeZone(time:currentTime(), "GMT");
+    time:Time time = check time:toTimeZone(time:currentTime(), "GMT");
     string amzdate = amazoncommons:generateAmzdate(time);
     string datestamp = amazoncommons:generateDatestamp(time);
 
@@ -85,7 +85,7 @@ function Client.execReknAction(string accessKey, string secretKey, string region
     }
     var httpResponse = self.clientEp->post("/", request);
     if (httpResponse is http:Response) {
-        json result = check parseJson(check httpResponse.getPayloadAsString());
+        json result = check parseJson(check httpResponse.getTextPayload());
         if (httpResponse.statusCode != http:OK_200) {
             string etype;
             if (result.__type != ()) {
