@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import ballerina/config;
 import ballerina/test;
 import ballerina/io;
@@ -26,10 +25,10 @@ Configuration config = {
 
 Client reknClient = new(config);
 
-@test:Config
-function testDetectText() returns error? {
-    byte[] data = check readFile("amazonrekn/tests/resources/text.jpeg");
-    var result = reknClient->detectText(untaint data);
+@test:Config {}
+function testDetectText() returns @tainted error? {
+    byte[] data = check readFile("src/amazonrekn/tests/resources/text.jpeg");
+    var result = reknClient->detectText(<@untainted> data);
     if (result is string) {
         test:assertTrue(result == "NOTHING\nEXISTS\nEXCEPT\nATOMS\nAND EMPTY\nSPACE.\nEverything else\nis opinion.");
     } else {
@@ -37,10 +36,10 @@ function testDetectText() returns error? {
     }
 }
 
-@test:Config
-function testDetectLabels() returns error? {
-    byte[] data = check readFile("amazonrekn/tests/resources/dog-woman.jpeg");
-    var result = reknClient->detectLabels(untaint data);
+@test:Config {}
+function testDetectLabels() returns @tainted error? {
+    byte[] data = check readFile("src/amazonrekn/tests/resources/dog-woman.jpeg");
+    var result = reknClient->detectLabels(<@untainted> data);
     if (result is Label[]) {
         boolean found = false;
         foreach Label label in result {
@@ -55,18 +54,24 @@ function testDetectLabels() returns error? {
     }
 }
 
-function readFile(string path) returns byte[]|error {
-    io:ReadableByteChannel ch = io:openReadableFile(path);
+function readFile(string path) returns @tainted byte[]|error {
+    io:ReadableByteChannel ch = check io:openReadableFile(path);
     byte[] output = [];
     int i = 0;
     while (true) {
-        (byte[], int) (buff, n) = check ch.read(1000);
-        if (n == 0) {
+        var result = ch.read(1000);
+        if (result is io:EofError) {
             break;
         }
-        foreach byte b in buff {
-            output[i] = b;
-            i += 1;
+        if (result is error) {
+            return result;
+        } else {
+            int j = 0;
+            while (j < result.length()) {
+                output[i] = result[j];
+                i += 1;
+                j += 1;
+            }
         }
     }
     check ch.close();

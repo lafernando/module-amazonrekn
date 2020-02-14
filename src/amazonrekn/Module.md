@@ -5,7 +5,7 @@ Connects to Amazon Rekognition service.
 ## Compatibility
 | Ballerina Language Version 
 | -------------------------- 
-| 0.990.3                    
+| 1.0.0
 
 ## Sample
 
@@ -22,9 +22,9 @@ amazonrekn:Configuration config = {
 
 amazonrekn:Client reknClient = new(config);
 
-public function main() {
-    byte[] data = readFile("input.jpeg");
-    var result1 = reknClient->detectLabels(untaint data);
+public function main() returns error? {
+    byte[] data = check readFile("input.jpeg");
+    var result1 = reknClient->detectLabels(data);
     io:println(result1);
 
     amazoncommons:S3Object s3obj = { bucket: "mybucket", name: "input.jpeg" };
@@ -32,21 +32,27 @@ public function main() {
     io:println(result2);
 }
 
-function readFile(string path) returns byte[] {
-    io:ReadableByteChannel ch = io:openReadableFile(path);
+function readFile(string path) returns byte[]|error {
+    io:ReadableByteChannel ch = check io:openReadableFile(path);
     byte[] output = [];
     int i = 0;
     while (true) {
-        (byte[], int) (buff, n) = check ch.read(1000);
-        if (n == 0) {
+        var result = ch.read(1000);
+        if (result is io:EofError) {
             break;
         }
-        foreach byte b in buff {
-            output[i] = b;
-            i += 1;
+        if (result is error) {
+            return <@untainted> result;
+        } else {
+            int j = 0;
+            while (j < result.length()) {
+                output[i] = result[j];
+                i += 1;
+                j += 1;
+            }
         }
     }
-    _ = ch.close();
-    return output;
+    check ch.close();
+    return <@untainted> output;
 }
 ```
